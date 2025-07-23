@@ -1,0 +1,63 @@
+ALTER VIEW delivery_process as
+
+SELECT
+    number AS Pedido,
+    CASE channel_name
+        WHEN 'nuvemshop' THEN 'Ecommerce'
+        WHEN 'MERCADO_LIVRE' THEN 'Mercado Livre'
+        WHEN 'MAGAZINE_LUIZA' THEN 'Magazine Luiza'
+        WHEN 'CNOVA' THEN 'Casas Bahia'
+        WHEN 'SHOPEE' THEN 'Shopee'
+        WHEN 'AMAZON_GLOBAL_API' THEN 'Amazon'
+        WHEN 'B2W_NEW_API' THEN 'Americanas'
+        WHEN 'NEXTSHOP' THEN 'Nextshop'
+        ELSE channel_name
+    END AS Canal_Venda,
+    invoice_number AS Nota_Fiscal,
+    CASE status
+        WHEN 'pending' THEN 'Pagamento Pendente'
+        WHEN 'approved' THEN 'Pagamento Aprovado'
+        WHEN 'shipped' THEN 'Enviado'
+        WHEN 'delivered' THEN 'Entregue'
+        WHEN 'canceled' THEN 'Cancelado'
+        WHEN 'invoiced' THEN 'Faturado'
+        WHEN 'voided' THEN 'Pagamento Recusado'
+        WHEN 'returned' THEN 'Devolvido'
+        WHEN 'ready_to_invoice' THEN 'Pronto para Faturar'
+        WHEN 'invoice_error' THEN 'Erro no Faturamento'
+        ELSE status
+    END AS status,
+    DATE_FORMAT(purchased_at, '%d/%m/%Y %H:%i') AS Data_Compra,    
+    DATE_FORMAT(approved_at, '%d/%m/%Y %H:%i') AS Data_Pagamento,
+    DATE_FORMAT(shipping_limit_date, '%d/%m/%Y %H:%i') AS Data_Limite_Envio,
+    DATE_FORMAT(delivery_limit_date, '%d/%m/%Y %H:%i') AS Data_Limite_Entrega,
+    DATE_FORMAT(delivered_at, '%d/%m/%Y %H:%i') AS Data_Entrega,
+    DATE_FORMAT(canceled_at, '%d/%m/%Y %H:%i') AS Data_Cancelado,
+    CASE
+        WHEN delivered_at IS NOT NULL THEN
+            DATEDIFF(delivered_at, delivery_limit_date)
+        ELSE
+            DATEDIFF(CURDATE(), delivery_limit_date)
+    END AS Dias_Atraso_Entrega,
+    CASE
+        WHEN delivered_at IS NOT NULL THEN -- Se já foi entregue
+            CASE
+                WHEN date(delivered_at) <= date(delivery_limit_date) THEN 'Dentro do Prazo'
+                ELSE 'Fora do Prazo'
+            END
+        ELSE -- Se ainda não foi entregue, compara com a data atual
+            CASE
+                WHEN CURDATE() <= date(delivery_limit_date) THEN 'Dentro do Prazo'
+                ELSE 'Fora do Prazo'
+            END
+    END AS Situacao,
+    CASE status
+        WHEN 'extrema' THEN 'Extrema'
+        WHEN 'sbc' THEN 'SBC'
+        ELSE location_id
+    END AS CD,
+    carrier_name AS Transportador,
+    0 OcorrenciaDevolucao
+
+FROM orders
+WHERE YEAR(purchased_at) = '2025'
