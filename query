@@ -1,7 +1,17 @@
-ALTER VIEW delivery_process as
+-- =====================================================
+-- Query: View Delivery Process
+-- Descrição: View que consolida e formata dados de pedidos
+--           focando no processo de entrega
+-- SGBD: MySQL
+-- =====================================================
+
+ALTER VIEW delivery_process AS
 
 SELECT
+    -- Identificação do Pedido
     number AS Pedido,
+    
+    -- Canal de Venda (traduzido)
     CASE channel_name
         WHEN 'nuvemshop' THEN 'Ecommerce'
         WHEN 'MERCADO_LIVRE' THEN 'Mercado Livre'
@@ -13,7 +23,11 @@ SELECT
         WHEN 'NEXTSHOP' THEN 'Nextshop'
         ELSE channel_name
     END AS Canal_Venda,
+    
+    -- Nota Fiscal
     invoice_number AS Nota_Fiscal,
+    
+    -- Status do Pedido (traduzido)
     CASE status
         WHEN 'pending' THEN 'Pagamento Pendente'
         WHEN 'approved' THEN 'Pagamento Aprovado'
@@ -27,18 +41,24 @@ SELECT
         WHEN 'invoice_error' THEN 'Erro no Faturamento'
         ELSE status
     END AS status,
+    
+    -- Datas Formatadas (DD/MM/AAAA HH:MM)
     DATE_FORMAT(purchased_at, '%d/%m/%Y %H:%i') AS Data_Compra,    
     DATE_FORMAT(approved_at, '%d/%m/%Y %H:%i') AS Data_Pagamento,
     DATE_FORMAT(shipping_limit_date, '%d/%m/%Y %H:%i') AS Data_Limite_Envio,
     DATE_FORMAT(delivery_limit_date, '%d/%m/%Y %H:%i') AS Data_Limite_Entrega,
     DATE_FORMAT(delivered_at, '%d/%m/%Y %H:%i') AS Data_Entrega,
     DATE_FORMAT(canceled_at, '%d/%m/%Y %H:%i') AS Data_Cancelado,
+    
+    -- Cálculo de Dias de Atraso
     CASE
         WHEN delivered_at IS NOT NULL THEN
             DATEDIFF(delivered_at, delivery_limit_date)
         ELSE
             DATEDIFF(CURDATE(), delivery_limit_date)
     END AS Dias_Atraso_Entrega,
+    
+    -- Situação da Entrega
     CASE
         WHEN delivered_at IS NOT NULL THEN -- Se já foi entregue
             CASE
@@ -51,13 +71,19 @@ SELECT
                 ELSE 'Fora do Prazo'
             END
     END AS Situacao,
+    
+    -- Centro de Distribuição (traduzido)
     CASE status
         WHEN 'extrema' THEN 'Extrema'
         WHEN 'sbc' THEN 'SBC'
         ELSE location_id
     END AS CD,
+    
+    -- Transportadora
     carrier_name AS Transportador,
-    0 OcorrenciaDevolucao
+    
+    -- Placeholder para Ocorrência de Devolução
+    0 AS OcorrenciaDevolucao
 
 FROM orders
-WHERE YEAR(purchased_at) = '2025'
+WHERE YEAR(purchased_at) = '2025';
